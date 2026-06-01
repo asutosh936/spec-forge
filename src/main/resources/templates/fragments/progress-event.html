@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<body>
+<li th:fragment="event" class="flex items-center gap-3">
+    <span th:classappend="${status == 'done'} ? 'text-green-500' :
+                           (${status == 'error'} ? 'text-red-500' : 'text-yellow-400')">
+        <span th:text="${status == 'done'} ? '✓' : (${status == 'error'} ? '✗' : '⟳')"></span>
+    </span>
+    <span th:text="${agentName}" class="font-semibold"></span>
+    <span th:text="${detail}" class="text-gray-400 text-sm"></span>
+</li>
+</body>
+</html>

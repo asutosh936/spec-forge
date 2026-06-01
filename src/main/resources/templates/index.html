@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>SpecForge — API Code Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen flex items-center justify-center p-6">
+
+<div class="w-full max-w-2xl">
+    <h1 class="text-3xl font-bold mb-2">SpecForge</h1>
+    <p class="text-gray-400 mb-8">Paste an OpenAPI spec, pick a language, get a working codebase.</p>
+
+    <form method="post" action="/generate">
+        <div class="mb-5">
+            <label for="spec" class="block text-sm font-medium mb-1">OpenAPI / Swagger Spec</label>
+            <textarea id="spec" name="spec" rows="14"
+                      placeholder="Paste your YAML or JSON spec here..."
+                      class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 font-mono text-sm
+                             focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"
+                      required></textarea>
+            <p class="text-xs text-gray-500 mt-1">Maximum 10 endpoints supported at this time.</p>
+        </div>
+
+        <div class="mb-5">
+            <label class="block text-sm font-medium mb-2">Target Language</label>
+            <div class="flex gap-6">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="language" value="JAVA" checked
+                           class="accent-indigo-500"/>
+                    <span>Java (Spring Boot)</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="language" value="PYTHON"
+                           class="accent-indigo-500"/>
+                    <span>Python (FastAPI)</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <label for="additionalContext" class="block text-sm font-medium mb-1">
+                Additional Context <span class="text-gray-500 font-normal">(optional)</span>
+            </label>
+            <textarea id="additionalContext" name="additionalContext" rows="3"
+                      placeholder="e.g. Use PostgreSQL, add pagination, include Swagger UI..."
+                      class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-sm
+                             focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"></textarea>
+        </div>
+
+        <button type="submit"
+                class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-lg
+                       transition-colors duration-150">
+            Generate Project
+        </button>
+    </form>
+</div>
+
+</body>
+</html>

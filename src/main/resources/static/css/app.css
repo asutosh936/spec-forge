@@ -1,0 +1,30 @@
+/* Custom styles layered on top of Tailwind CDN */
+
+.file-tree-item {
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-tree-item:hover {
+    background-color: rgba(99, 102, 241, 0.2);
+}
+
+.file-tree-item.active {
+    background-color: rgba(99, 102, 241, 0.4);
+    color: #a5b4fc;
+}
+
+#editor-mount {
+    height: 100%;
+    overflow: auto;
+}
+
+.cm-editor {
+    height: 100%;
+    font-size: 13px;
+}
