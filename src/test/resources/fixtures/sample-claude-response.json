@@ -1,0 +1,24 @@
+{
+  "files": [
+    {
+      "path": "pom.xml",
+      "type": "BUILD",
+      "content": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project>\n  <modelVersion>4.0.0</modelVersion>\n  <groupId>com.example</groupId>\n  <artifactId>pet-store</artifactId>\n  <version>0.0.1-SNAPSHOT</version>\n</project>"
+    },
+    {
+      "path": "src/main/java/com/example/petstore/PetStoreApplication.java",
+      "type": "APPLICATION_MAIN",
+      "content": "package com.example.petstore;\n\nimport org.springframework.boot.SpringApplication;\nimport org.springframework.boot.autoconfigure.SpringBootApplication;\n\n@SpringBootApplication\npublic class PetStoreApplication {\n    public static void main(String[] args) {\n        SpringApplication.run(PetStoreApplication.class, args);\n    }\n}"
+    },
+    {
+      "path": "src/main/java/com/example/petstore/controller/PetsController.java",
+      "type": "CONTROLLER",
+      "content": "package com.example.petstore.controller;\n\nimport org.springframework.web.bind.annotation.GetMapping;\nimport org.springframework.web.bind.annotation.RequestMapping;\nimport org.springframework.web.bind.annotation.RestController;\nimport java.util.List;\n\n@RestController\n@RequestMapping(\"/pets\")\npublic class PetsController {\n\n    @GetMapping\n    public List<String> listPets() {\n        return List.of();\n    }\n}"
+    },
+    {
+      "path": "README.md",
+      "type": "README",
+      "content": "# Pet Store API\n\nGenerated Spring Boot project.\n\n## Run\n\n```bash\nmvn spring-boot:run\n```"
+    }
+  ]
+}

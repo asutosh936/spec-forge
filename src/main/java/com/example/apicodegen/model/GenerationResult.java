@@ -1,11 +1,16 @@
 package com.example.apicodegen.model;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 public record GenerationResult(
         String sessionId,
-        Language language,
-        ApiManifest manifest,
         List<GeneratedFile> files,
-        ReviewReport reviewReport
-) {}
+        Language language,
+        Instant generatedAt
+) {
+    public Optional<GeneratedFile> findFile(String path) {
+        return files.stream().filter(f -> f.filename().equals(path)).findFirst();
+    }
+}

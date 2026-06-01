@@ -18,7 +18,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public String handleNoResourceFound(NoResourceFoundException ex) {
-        // Don't log missing static resources (favicon.ico, etc.) as errors
         log.debug("Resource not found: {}", ex.getResourcePath());
         return "error/404";
     }
@@ -42,8 +41,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public String handleGeneral(Exception ex, Model model) {
-        // Note: Async @Async pipeline exceptions should NOT reach here
-        // They are caught in PipelineOrchestrator.runPipeline() and sent via SSE
         log.error("Unexpected error", ex);
         model.addAttribute("errorMessage", "An unexpected error occurred");
         return "error/500";

@@ -12,28 +12,32 @@
     <h1 class="text-3xl font-bold mb-2">SpecForge</h1>
     <p class="text-gray-400 mb-8">Paste an OpenAPI spec, pick a language, get a working codebase.</p>
 
+    <div th:if="${error}"
+         class="mb-5 bg-red-900 border border-red-600 rounded-lg p-4 text-red-200 text-sm"
+         th:text="${error}">
+    </div>
+
     <form method="post" action="/generate">
         <div class="mb-5">
             <label for="spec" class="block text-sm font-medium mb-1">OpenAPI / Swagger Spec</label>
             <textarea id="spec" name="spec" rows="14"
                       placeholder="Paste your YAML or JSON spec here..."
+                      th:text="${request?.spec}"
                       class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 font-mono text-sm
                              focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"
                       required></textarea>
-            <p class="text-xs text-gray-500 mt-1">Maximum 10 endpoints supported at this time.</p>
+            <p class="text-xs text-gray-500 mt-1">Maximum 10 endpoints supported.</p>
         </div>
 
         <div class="mb-5">
             <label class="block text-sm font-medium mb-2">Target Language</label>
             <div class="flex gap-6">
                 <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="language" value="JAVA" checked
-                           class="accent-indigo-500"/>
+                    <input type="radio" name="language" value="JAVA" checked class="accent-indigo-500"/>
                     <span>Java (Spring Boot)</span>
                 </label>
                 <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="language" value="PYTHON"
-                           class="accent-indigo-500"/>
+                    <input type="radio" name="language" value="PYTHON" class="accent-indigo-500"/>
                     <span>Python (FastAPI)</span>
                 </label>
             </div>
@@ -44,17 +48,33 @@
                 Additional Context <span class="text-gray-500 font-normal">(optional)</span>
             </label>
             <textarea id="additionalContext" name="additionalContext" rows="3"
-                      placeholder="e.g. Use PostgreSQL, add pagination, include Swagger UI..."
+                      placeholder="e.g. use PostgreSQL, add pagination, include Swagger UI..."
+                      th:text="${request?.additionalContext}"
                       class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-sm
                              focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"></textarea>
         </div>
 
+        <!-- onclick: disable to prevent double-submit, show spinner, then submit -->
         <button type="submit"
+                onclick="this.disabled=true; document.getElementById('loading').style.display='block'; this.textContent='Generating...'; this.form.submit()"
                 class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-lg
-                       transition-colors duration-150">
+                       transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed">
             Generate Project
         </button>
     </form>
+
+    <!-- Loading indicator — shown while the single Claude call is in-flight -->
+    <div id="loading" style="display:none" class="mt-6 text-center">
+        <div class="inline-flex items-center gap-3 text-gray-300">
+            <svg class="animate-spin h-5 w-5 text-indigo-400" xmlns="http://www.w3.org/2000/svg"
+                 fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+            <span>Generating your codebase... this takes 30–90 seconds.</span>
+        </div>
+    </div>
 </div>
 
 </body>

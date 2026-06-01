@@ -5,16 +5,31 @@ spring:
   thymeleaf:
     cache: false
 
-anthropic:
-  api-key: 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
+# ── LLM Provider ─────────────────────────────────────────────────────────────
+# Switch provider without changing code — update this block only.
+#
+# Anthropic (default):
+#   provider: anthropic | model: claude-haiku-4-5-20251001
+#   base-url: https://api.anthropic.com/v1
+#
+# Ollama (local, free, no rate limits):
+#   provider: ollama | model: llama3.1:8b
+#   base-url: http://localhost:11434/v1 | api-key: ollama
+#
+# Groq (free tier, high limits):
+#   provider: groq | model: llama-3.1-8b-instant
+#   base-url: https://api.groq.com/openai/v1 | api-key: ${GROQ_API_KEY}
+# ─────────────────────────────────────────────────────────────────────────────
+llm:
+  provider: anthropic
   model: claude-haiku-4-5-20251001
-  max-tokens: 4096
+  max-tokens: 8192
   base-url: https://api.anthropic.com/v1
+  api-key: {{ANTHROPIC_API_KEY} }
 
 codegen:
   session:
     ttl-minutes: 30
-    max-concurrent: 10
   spec:
     max-endpoints: 10
     max-size-kb: 128

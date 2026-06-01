@@ -1,0 +1,9 @@
+spring:
+  profiles:
+    active: test
+
+llm:
+  api-key: stub
+  model: stub
+  provider: stub
+  base-url: http://localhost

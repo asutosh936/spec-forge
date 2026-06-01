@@ -7,17 +7,14 @@ import java.util.List;
 public record ProjectBlueprint(
         String projectName,
         Language language,
-        String framework,
-        String database,
         String packageRoot,
         List<FilePlan> filePlan
 ) {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record FilePlan(
-            String filename,
+            String path,
             String fileType,
-            String purpose,
-            List<String> dependsOn
+            String description
     ) {}
 }
