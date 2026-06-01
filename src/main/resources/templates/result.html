@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>SpecForge — Generation Result</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/codemirror@6/dist/codemirror.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/codemirror@6/dist/codemirror.css"/>
+    <script src="https://unpkg.com/@codemirror/lang-java@6"></script>
+    <script src="https://unpkg.com/@codemirror/lang-python@6"></script>
+    <script src="https://unpkg.com/@codemirror/lang-xml@6"></script>
+    <style>
+        .cm-editor { height: 600px; border: 1px solid #374151; border-radius: 0.5rem; }
+        .cm-gutters { background-color: #111827; }
+        .cm-content { background-color: #0f172a; }
+        .cm-line { color: #e5e7eb; }
+        .tree-toggle { cursor: pointer; user-select: none; }
+        .tree-item { margin-left: 1.5rem; }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen p-6">
+
+<div class="max-w-7xl mx-auto">
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold mb-1">SpecForge — Project Generated</h1>
+            <p class="text-gray-400">Language: <span th:text="${language}">JAVA</span> | Files: <span th:text="${files.size()}">0</span> | Review Score: <span th:text="${review.overallScore()}">0</span>%</p>
+        </div>
+        <a th:href="@{/download/{id}(id=${result.sessionId()})}"
+           class="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors">
+            ⬇ Download ZIP
+        </a>
+    </div>
+
+    <div class="grid grid-cols-3 gap-6">
+        <!-- File tree (left panel) -->
+        <div class="col-span-1 bg-gray-900 border border-gray-700 rounded-lg p-4 max-h-96 overflow-y-auto">
+            <h2 class="text-lg font-semibold mb-3 text-indigo-400">Files</h2>
+            <div id="file-tree" class="text-sm font-mono space-y-1">
+                <p class="text-gray-500 text-xs">Loading files...</p>
+            </div>
+        </div>
+
+        <!-- CodeMirror preview (right panel) -->
+        <div class="col-span-2">
+            <h2 class="text-lg font-semibold mb-3 text-indigo-400">Preview</h2>
+            <div id="editor" class="bg-gray-900 border border-gray-700 rounded-lg overflow-hidden"></div>
+            <p id="file-path" class="text-xs text-gray-500 mt-2"></p>
+        </div>
+    </div>
+
+    <!-- Review Report -->
+    <div class="mt-8 bg-gray-900 border border-gray-700 rounded-lg p-4">
+        <h2 class="text-lg font-semibold mb-3 text-indigo-400">Code Review</h2>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <p class="text-sm text-gray-400">Overall Score</p>
+                <p class="text-2xl font-bold text-green-400" th:text="${review.overallScore()} + '%'">0%</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-400">Summary</p>
+                <p class="text-sm text-gray-300" th:text="${review.summary()}">No summary</p>
+            </div>
+        </div>
+        <div th:if="${review.issues() and review.issues().size() > 0}" class="mt-4 space-y-2">
+            <p class="text-sm text-gray-400">Issues Found:</p>
+            <ul class="list-disc list-inside text-sm text-gray-300 space-y-1">
+                <li th:each="issue : ${review.issues()}" th:text="${issue}">Issue</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    // File data passed from controller
+    const filesData = [[${files}]];
+    const language = [[${language}]];
+
+    // CodeMirror instance
+    let editor = null;
+    let editorLanguage = null;
+
+    // Initialize CodeMirror
+    function initEditor() {
+        const { EditorState } = await import('https://unpkg.com/@codemirror/state@6/dist/index.js');
+        const { EditorView, basicSetup } = await import('https://unpkg.com/@codemirror/view@6/dist/index.js');
+
+        editor = new EditorView({
+            state: EditorState.create({
+                doc: 'Select a file to view...',
+                extensions: [basicSetup]
+            }),
+            parent: document.getElementById('editor')
+        });
+    }
+
+    // Build and render file tree
+    function renderFileTree() {
+        const treeEl = document.getElementById('file-tree');
+        treeEl.innerHTML = '';
+
+        filesData.forEach((file, idx) => {
+            const item = document.createElement('div');
+            item.className = 'tree-item p-2 rounded hover:bg-gray-800 cursor-pointer';
+            item.innerHTML = `<span class="text-indigo-300">📄 ${file.filename}</span>`;
+            item.addEventListener('click', () => selectFile(file, idx, item));
+            treeEl.appendChild(item);
+        });
+    }
+
+    // Select file and show in preview
+    function selectFile(file, idx, element) {
+        // Highlight selected
+        document.querySelectorAll('#file-tree .tree-item').forEach(el => {
+            el.classList.remove('bg-indigo-900');
+        });
+        element.classList.add('bg-indigo-900');
+
+        // Update CodeMirror
+        if (editor) {
+            editor.dispatch({
+                changes: { from: 0, to: editor.state.doc.length, insert: file.content }
+            });
+        }
+
+        document.getElementById('file-path').textContent = `📄 ${file.filename} (${file.fileType})`;
+    }
+
+    // Render on load
+    renderFileTree();
+    if (filesData.length > 0) {
+        selectFile(filesData[0], 0, document.querySelector('#file-tree .tree-item'));
+    }
+</script>
+
+</body>
+</html>

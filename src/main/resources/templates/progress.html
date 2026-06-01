@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>SpecForge — Generation in Progress</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen p-6">
+
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-2">SpecForge — Generating Project</h1>
+    <p class="text-gray-400 mb-8">Real-time pipeline progress below. Redirecting when complete...</p>
+
+    <div class="space-y-3">
+        <!-- Agent progress cards -->
+        <div id="progress-container" class="space-y-2">
+            <div class="px-4 py-3 rounded-lg bg-gray-900 border border-gray-700">
+                <p class="text-sm text-gray-400">Waiting for pipeline to start...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="sse-status" class="mt-8 p-4 bg-gray-900 border border-gray-700 rounded-lg">
+        <p class="text-sm text-gray-400">Connecting to progress stream...</p>
+    </div>
+</div>
+
+<script>
+    const sessionId = document.location.pathname.split('/')[2];
+    const containerEl = document.getElementById('progress-container');
+    const statusEl = document.getElementById('sse-status');
+
+    let eventSource = null;
+    let pipelineCompleted = false;
+
+    function connectSSE() {
+        eventSource = new EventSource(`/progress/${sessionId}/stream`);
+        statusEl.innerHTML = '<p class="text-sm text-green-400">✓ Connected to progress stream</p>';
+
+        eventSource.addEventListener('progress', function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                updateProgress(data);
+
+                if (data.status === 'error') {
+                    pipelineCompleted = true;
+                    eventSource.close();
+                }
+            } catch (e) {
+                console.error('Failed to parse progress event:', e);
+            }
+        });
+
+        eventSource.onerror = function() {
+            if (pipelineCompleted) return;
+            statusEl.innerHTML = '<p class="text-sm text-red-400">✗ Connection lost</p>';
+            eventSource.close();
+        };
+    }
+
+    function updateProgress(data) {
+        const agentName = data.agent || 'Pipeline';
+        let card = document.querySelector(`[data-agent="${agentName}"]`);
+
+        if (!card) {
+            card = document.createElement('div');
+            card.setAttribute('data-agent', agentName);
+            card.className = 'px-4 py-3 rounded-lg bg-gray-900 border border-gray-700';
+            containerEl.appendChild(card);
+        }
+
+        let icon = '⏳';
+        let textColor = 'text-gray-300';
+
+        if (data.status === 'done') {
+            icon = '✓';
+            textColor = 'text-green-400';
+            if (agentName === 'Pipeline') {
+                pipelineCompleted = true;
+                eventSource.close();
+                setTimeout(() => {
+                    window.location.href = `/result/${sessionId}`;
+                }, 1000);
+            }
+        } else if (data.status === 'error') {
+            icon = '✗';
+            textColor = 'text-red-400';
+            pipelineCompleted = true;
+            eventSource.close();
+        } else if (data.status === 'running') {
+            icon = '▶';
+            textColor = 'text-blue-400';
+        }
+
+        const detail = data.detail || '(no detail)';
+        card.innerHTML = `<p class="text-sm ${textColor}"><span class="mr-2">${icon}</span>${agentName}: ${detail}</p>`;
+    }
+
+    // Start SSE connection
+    connectSSE();
+</script>
+
+</body>
+</html>
