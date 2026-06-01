@@ -1,6 +1,6 @@
 # AI-Powered API Code Generation Workflow — Plan v2
 
-> Revised stack: Spring Boot 3.2 + Java 21 monolith, Thymeleaf + HTMX frontend, CodeMirror 6 preview
+> Revised stack: Spring Boot 3.2 + Java 17 monolith, Thymeleaf + HTMX frontend, CodeMirror 6 preview
 
 ---
 
@@ -46,7 +46,7 @@ Browser
   │
 Spring Boot Monolith (single JAR)
   ├── Web Layer         (Spring MVC controllers + Thymeleaf views)
-  ├── Pipeline Service  (orchestrates agents via Virtual Thread executor)
+  ├── Pipeline Service  (orchestrates agents via cached thread pool executor)
   ├── Agent Services    (one Spring @Service per agent)
   ├── Spec Parser       (snakeyaml + jackson)
   ├── ZIP Builder       (java.util.zip)
@@ -67,11 +67,11 @@ spec-forge/                                              ← project root
 │   ├── main/
 │   │   ├── java/com/example/apicodegen/
 │   │   │   │
-│   │   │   ├── ApiCodegenApplication.java          ← @SpringBootApplication, enables virtual threads
+│   │   │   ├── ApiCodegenApplication.java          ← @SpringBootApplication, enables component scanning
 │   │   │   │
 │   │   │   ├── config/
 │   │   │   │   ├── AnthropicConfig.java             ← RestClient bean, API key from properties
-│   │   │   │   ├── ExecutorConfig.java              ← Virtual thread executor bean
+│   │   │   │   ├── ExecutorConfig.java              ← Cached thread pool executor bean
 │   │   │   │   └── WebConfig.java                   ← MVC config, static resources
 │   │   │   │
 │   │   │   ├── web/
@@ -239,7 +239,31 @@ short-lived parallel bursts this pipeline produces.
 
 ---
 
-## 7. SSE Progress Streaming with HTMX
+## 7. Logging Strategy
+
+Extensive SLF4J logging (via Spring's default Logback) throughout the application:
+
+**Log Levels:**
+- **DEBUG**: Detailed operations (spec format detection, parameter values, intermediate results)
+- **INFO**: Major milestones (spec parsed, agent called, response received, ZIP built)
+- **WARN**: Recoverable validation failures (spec size exceeded, endpoint count exceeded)
+- **ERROR**: Exceptions and failures (API call failure, parsing error, unexpected errors)
+
+**Logged Components:**
+- `SpecParser`: Parsing, validation, endpoint counts
+- `AgentService`: Request building, API calls, response parsing with markdown fence stripping
+- `SpecAnalystAgent`: Analysis start/end, endpoints extracted
+- `GeneratorController`: HTTP requests, language selection, endpoint count
+- `GlobalExceptionHandler`: All exceptions with stack traces
+- `SessionStore`: Session registration, emitter retrieval, TTL cleanup
+- `ZipBuilder`: ZIP creation with file counts and archive size
+
+No custom configuration needed — Spring Boot's default Logback outputs to stdout and `logs/spring.log`.
+To see DEBUG output, set `logging.level.com.example.apicodegen=DEBUG` in `application.yml`.
+
+---
+
+## 8. SSE Progress Streaming with HTMX
 
 ### Server side — `SseEmitter`
 
@@ -298,13 +322,13 @@ the browser to `/result/{sessionId}` automatically.
 
 ---
 
-## 8. Multi-Agent Pipeline — unchanged responsibilities, Java implementation notes
+## 9. Multi-Agent Pipeline — unchanged responsibilities, Java implementation notes
 
 | Agent | Spring component | Key implementation note |
 |---|---|---|
 | Spec Analyst | `SpecAnalystAgent.java` | Sends raw spec + system prompt; response parsed to `ApiManifest` record via Jackson |
 | Architect | `ArchitectAgent.java` | Receives `ApiManifest` JSON; returns `ProjectBlueprint` JSON; strict output schema in prompt |
-| Code Generator | `CodeGeneratorAgent.java` | One `RestClient` call per file; batched via virtual thread executor; results merged into `Map<String, GeneratedFile>` |
+| Code Generator | `CodeGeneratorAgent.java` | One `RestClient` call per file; batched via cached thread pool; results merged into `Map<String, GeneratedFile>` |
 | Test Writer | `TestWriterAgent.java` | Receives source file content + manifest; generates parallel test files same way as Agent 3 |
 | Reviewer | `ReviewerAgent.java` | Receives all file contents concatenated (or summarised if large); returns `ReviewReport` record |
 
@@ -321,7 +345,7 @@ The user sees a clear error message and a "Start over" link.
 
 ---
 
-## 9. Thymeleaf Page Flow
+## 10. Thymeleaf Page Flow
 
 ```
 GET /
@@ -352,7 +376,7 @@ GET /result/{sessionId}
 
 ---
 
-## 10. CodeMirror 6 Integration in Thymeleaf
+## 11. CodeMirror 6 Integration in Thymeleaf
 
 ```html
 <!-- result.html — CDN imports, no npm/Node needed -->
@@ -390,7 +414,7 @@ tree node — no extra AJAX call needed to load a file on click.
 
 ---
 
-## 11. Generated Project Output
+## 12. Generated Project Output
 
 ### Java (Spring Boot)
 - `pom.xml`, `ApiApplication.java`, `application.yml`
@@ -408,16 +432,15 @@ Both outputs include an auto-generated `README.md` with setup instructions.
 
 ---
 
-## 12. `application.yml`
+## 13. `application.yml`
 
 ```yaml
 server:
   port: 8080
 
 spring:
-  threads:
-    virtual:
-      enabled: true          # Java 21 virtual threads for all request handling
+  thymeleaf:
+    cache: false
 
 anthropic:
   api-key: ${ANTHROPIC_API_KEY}   # injected from environment — never hardcoded
@@ -436,15 +459,15 @@ codegen:
 
 ---
 
-## 13. Dockerfile
+## 14. Dockerfile
 
 ```dockerfile
-FROM eclipse-temurin:21-jdk-alpine AS build
+FROM eclipse-temurin:17-jdk-alpine AS build
 WORKDIR /app
 COPY . .
 RUN ./mvnw -q package -DskipTests
 
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/api-codegen-*.jar app.jar
 EXPOSE 8080
@@ -459,7 +482,7 @@ docker run -p 8080:8080 -e ANTHROPIC_API_KEY=sk-ant-... api-codegen
 
 ---
 
-## 14. Decisions Log
+## 15. Decisions Log
 
 These questions were resolved before implementation began.
 
@@ -476,7 +499,7 @@ These questions were resolved before implementation began.
 
 ---
 
-## 15. Phase & Task Tracking
+## 16. Phase & Task Tracking
 
 Each phase must build and be independently testable before the next begins.
 
@@ -484,18 +507,19 @@ Each phase must build and be independently testable before the next begins.
 
 | Task | Details | Status |
 |------|---------|--------|
-| Maven project scaffold | `pom.xml`, `ApiCodegenApplication.java`, all packages created with stub classes | Not Started |
-| Model records designed | `ApiManifest`, `ProjectBlueprint`, `GeneratedFile`, `GenerationResult`, `ReviewReport`, `Language` enum | Not Started |
-| `SpecParser` implemented | Detects YAML vs JSON, validates structure, counts endpoints, enforces 10-endpoint cap | Not Started |
-| `SpecValidationException` | Typed exception with message for invalid/oversized specs | Not Started |
-| `AnthropicConfig` | `RestClient` bean wired to Anthropic base URL + API key from env | Not Started |
-| `AgentService` base class | `buildRequest()`, `callClaude()`, `parseJson()` shared helpers | Not Started |
-| `analyst-system.txt` prompt | System prompt instructing Haiku to return strict `ApiManifest` JSON | Not Started |
-| `SpecAnalystAgent` end-to-end | Sends spec → receives `ApiManifest` JSON → deserialises to record | Not Started |
-| `GeneratorController` stub | `GET /` returns index page; `POST /generate` returns plain-text session ID | Not Started |
-| Minimal `index.html` | Spec textarea, language radio, context textarea, submit button | Not Started |
-| `SpecParserTest` | Unit tests: valid YAML, valid JSON, >10 endpoints, missing `paths`, malformed input | Not Started |
-| `SpecAnalystAgentTest` | Mocked `RestClient`; verifies request shape and JSON-to-record deserialisation | Not Started |
+| Maven project scaffold | `pom.xml`, `ApiCodegenApplication.java`, all packages created with stub classes | Completed |
+| Model records designed | `ApiManifest`, `ProjectBlueprint`, `GeneratedFile`, `GenerationResult`, `ReviewReport`, `Language` enum | Completed |
+| `SpecParser` implemented | Detects YAML vs JSON, validates structure, counts endpoints, enforces 10-endpoint cap | Completed |
+| `SpecValidationException` | Typed exception with message for invalid/oversized specs | Completed |
+| `AnthropicConfig` | `RestClient` bean wired to Anthropic base URL + API key from env | Completed |
+| `AgentService` base class | `buildRequest()`, `callClaude()`, `parseJson()` shared helpers with extensive logging | Completed |
+| `analyst-system.txt` prompt | System prompt instructing Haiku to return strict `ApiManifest` JSON | Completed |
+| `SpecAnalystAgent` end-to-end | Sends spec → receives `ApiManifest` JSON → deserialises to record | Completed |
+| `GeneratorController` stub | `GET /` returns index page; `POST /generate` returns plain-text JSON | Completed |
+| Minimal `index.html` | Spec textarea, language radio, context textarea, submit button | Completed |
+| `SpecParserTest` | Unit tests: valid YAML, valid JSON, >10 endpoints, missing `paths`, malformed input | Completed |
+| `SpecAnalystAgentTest` | Test double overrides; verifies request shape and JSON-to-record deserialisation | Completed |
+| Comprehensive logging | SLF4J loggers in SpecParser, AgentService, Controllers, SessionStore, ZipBuilder | Completed |
 
 ### Phase 2 — Full Pipeline, Java Output
 
@@ -556,7 +580,7 @@ Each phase must build and be independently testable before the next begins.
 
 ---
 
-## 16. Agent Output Schemas
+## 17. Agent Output Schemas
 
 Designed in Phase 1. All records use Jackson for deserialisation; Claude is instructed to return
 **only** a JSON object matching the schema — no markdown fences, no prose.

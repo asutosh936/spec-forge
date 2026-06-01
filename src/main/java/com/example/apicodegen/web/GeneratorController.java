@@ -7,6 +7,8 @@ import com.example.apicodegen.parser.SpecParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -17,6 +19,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
 public class GeneratorController {
+
+    private static final Logger log = LoggerFactory.getLogger(GeneratorController.class);
 
     private final SpecParser specParser;
     private final SpecAnalystAgent specAnalystAgent;
@@ -29,6 +33,7 @@ public class GeneratorController {
 
     @GetMapping("/")
     public String index(Model model) {
+        log.debug("GET / - rendering index form");
         model.addAttribute("request", new GenerationRequest());
         return "index";
     }
@@ -37,11 +42,22 @@ public class GeneratorController {
     @ResponseBody
     public String generate(@Valid @ModelAttribute GenerationRequest request, BindingResult bindingResult)
             throws JsonProcessingException {
+        log.info("POST /generate - received request for language: {}", request.getLanguage());
+
         if (bindingResult.hasErrors()) {
-            return "Validation errors: " + bindingResult.getAllErrors();
+            String errors = bindingResult.getAllErrors().toString();
+            log.warn("Validation errors in generation request: {}", errors);
+            return "Validation errors: " + errors;
         }
+
+        log.debug("Validating spec (size: {} bytes)", request.getSpec().length());
         specParser.parse(request.getSpec());
+
+        log.info("Calling SpecAnalystAgent for analysis");
         ApiManifest manifest = specAnalystAgent.analyze(request.getSpec());
-        return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(manifest);
+
+        String response = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(manifest);
+        log.info("Generation request completed: {} endpoints analyzed", manifest.endpointCount());
+        return response;
     }
 }
