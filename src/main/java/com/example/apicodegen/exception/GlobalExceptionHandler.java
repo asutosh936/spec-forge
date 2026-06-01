@@ -42,6 +42,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public String handleGeneral(Exception ex, Model model) {
+        // Note: Async @Async pipeline exceptions should NOT reach here
+        // They are caught in PipelineOrchestrator.runPipeline() and sent via SSE
         log.error("Unexpected error", ex);
         model.addAttribute("errorMessage", "An unexpected error occurred");
         return "error/500";

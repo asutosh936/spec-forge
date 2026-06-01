@@ -114,7 +114,11 @@ public class PipelineOrchestrator {
 
         } catch (Exception e) {
             log.error("Pipeline {}: FAILED with error: {}", sessionId, e.getMessage(), e);
-            pushProgress(sessionId, "Pipeline", "error", "Error: " + e.getMessage());
+            try {
+                pushProgress(sessionId, "Pipeline", "error", "Error: " + e.getMessage());
+            } catch (Exception sseError) {
+                log.error("Failed to send error via SSE: {}", sseError.getMessage());
+            }
         }
     }
 
@@ -136,7 +140,11 @@ public class PipelineOrchestrator {
             emitter.send(SseEmitter.event().name("progress").data(event));
             log.debug("Progress event sent: {} - {} ({})", agentName, status, detail);
         } catch (IOException e) {
-            log.warn("Failed to send SSE event for session {}: {}", sessionId, e.getMessage());
+            log.warn("Failed to send SSE event for session {}: {} (client likely disconnected)", sessionId, e.getMessage());
+            // Do NOT rethrow - this is an async operation not tied to any HTTP response
+        } catch (Exception e) {
+            log.warn("Unexpected error sending SSE event for session {}: {}", sessionId, e.getMessage());
+            // Do NOT rethrow - prevents conflicts in async context
         }
     }
 }
