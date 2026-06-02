@@ -1,66 +1,269 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>SpecForge — Result</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/css/app.css"/>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SpecForge — Result</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = { theme: { extend: {
+  fontFamily: { display:['Space Grotesk','sans-serif'], mono:['JetBrains Mono','monospace'] },
+  colors: { ink:'#08080c', surface:'#0e0e16', surface2:'#13131f', line:'rgba(255,255,255,0.08)' },
+}}};
+</script>
+<style>
+  body { font-family:'Space Grotesk',sans-serif; }
+  .glow-bg::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background: radial-gradient(720px 380px at 50% -12%, rgba(99,102,241,0.14), transparent 70%); }
+  .file-item { transition: background-color .12s, color .12s; }
+  .file-item:hover { background: rgba(255,255,255,0.04); }
+  .file-item.active { background: rgba(99,102,241,0.16); color:#c7d2fe; }
+  .file-item.active .fi-icon { color:#a5b4fc; }
+  .tab { transition: all .15s; }
+  .ln { color:#33333f; text-align:right; user-select:none; }
+  .copy-ok { animation: ok .3s ease; }
+  @keyframes ok { 0%{transform:scale(1)} 50%{transform:scale(1.15)} 100%{transform:scale(1)} }
+  .fade-in { animation: fi .45s ease both; }
+  @keyframes fi { from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:#222230; border-radius:6px; border:2px solid transparent; background-clip:padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background:#2e2e40; background-clip:padding-box; }
+  .tok-key{color:#c792ea} .tok-str{color:#c3e88d} .tok-ann{color:#82aaff}
+  .tok-com{color:#5a5a6e;font-style:italic} .tok-typ{color:#ffcb6b} .tok-num{color:#f78c6c}
+</style>
 </head>
-<body class="bg-gray-950 text-gray-100 min-h-screen p-6" th:attr="data-language=${language}">
+<body class="bg-ink text-gray-100 min-h-screen glow-bg" th:attr="data-language=${language}">
 
-<div class="max-w-7xl mx-auto">
+<div class="relative z-10 max-w-[1400px] mx-auto p-6 fade-in">
 
-    <!-- Header -->
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold">SpecForge — Project Generated</h1>
-            <p class="text-gray-400 text-sm mt-1">
-                <span th:text="${language}">java</span>
-                &nbsp;·&nbsp;
-                <span th:text="${files.size()}">0</span> files
-            </p>
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-5">
+    <div class="flex items-center gap-3">
+      <div class="grid place-items-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2 5 13h6l-1 9 9-11h-6l1-9z"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold leading-none">Project Generated</h1>
+        <p class="text-gray-500 text-sm mt-1 flex items-center gap-2">
+          <span class="inline-flex items-center gap-1.5 text-emerald-400">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>Ready
+          </span>
+          <span class="text-gray-700">·</span>
+          <span class="font-mono" th:text="${language}">java</span>
+          <span class="text-gray-700">·</span>
+          <span class="font-mono"><span th:text="${files.size()}">0</span> files</span>
+        </p>
+      </div>
+    </div>
+    <div class="flex gap-2.5">
+      <a th:href="@{/download/{id}(id=${result.sessionId()})}"
+         class="group flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white font-semibold rounded-lg text-sm shadow-lg shadow-indigo-900/30 transition-all">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/>
+        </svg>
+        Download ZIP
+      </a>
+      <a href="/" class="flex items-center gap-2 px-4 py-2 bg-surface2 hover:bg-surface border border-line text-gray-200 font-semibold rounded-lg text-sm transition-colors">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12a9 9 0 1 0 3-6.7M3 4v4h4"/>
+        </svg>
+        Start Over
+      </a>
+    </div>
+  </div>
+
+  <!-- Workspace -->
+  <div class="grid grid-cols-[280px_1fr] gap-4" style="height:76vh; min-height:560px">
+
+    <!-- File tree -->
+    <div class="bg-surface border border-line rounded-xl flex flex-col overflow-hidden">
+      <div class="p-3 border-b border-line">
+        <div class="relative">
+          <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-600" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/>
+          </svg>
+          <input id="search" placeholder="Filter files…"
+                 class="w-full bg-surface2 border border-line rounded-lg pl-8 pr-3 py-1.5 text-xs font-mono text-gray-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/50"/>
         </div>
-        <div class="flex gap-3">
-            <a th:href="@{/download/{id}(id=${result.sessionId()})}"
-               class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors text-sm">
-                Download ZIP
-            </a>
-            <a href="/"
-               class="px-5 py-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-colors text-sm">
-                Start Over
-            </a>
-        </div>
+      </div>
+      <div id="tree" class="flex-1 overflow-y-auto p-2 space-y-px"></div>
     </div>
 
-    <!-- Two-panel layout -->
-    <div class="grid grid-cols-4 gap-4" style="height: 70vh;">
-
-        <!-- File tree (left) -->
-        <div class="col-span-1 bg-gray-900 border border-gray-700 rounded-lg p-3 overflow-y-auto">
-            <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Files</p>
-            <div id="file-tree" class="space-y-0.5 font-mono text-xs">
-                <div th:each="file, stat : ${files}"
-                     class="file-tree-item px-2 py-1 rounded cursor-pointer hover:bg-gray-800 truncate"
-                     th:attr="data-content=${file.content}, data-path=${file.filename}"
-                     th:classappend="${stat.first} ? ' active'"
-                     th:text="${file.filename}">
-                </div>
-            </div>
+    <!-- Editor -->
+    <div class="bg-surface border border-line rounded-xl flex flex-col overflow-hidden">
+      <!-- Tab bar -->
+      <div class="flex items-stretch border-b border-line bg-black/20 overflow-x-auto">
+        <div id="tabs" class="flex items-stretch"></div>
+      </div>
+      <!-- Breadcrumb + actions -->
+      <div class="flex items-center justify-between px-4 py-2 border-b border-line bg-black/10">
+        <div id="crumb" class="font-mono text-xs text-gray-500"></div>
+        <div class="flex items-center gap-2">
+          <span id="lineInfo" class="font-mono text-xs text-gray-600"></span>
+          <button id="copyBtn"
+                  class="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1 rounded-md border border-line text-gray-400 hover:text-gray-200 hover:border-gray-600 transition-colors">
+            <svg id="copyIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>
+            </svg>
+            <span id="copyLabel">Copy</span>
+          </button>
         </div>
-
-        <!-- CodeMirror editor (right) -->
-        <div class="col-span-3 flex flex-col">
-            <p id="active-path" class="text-xs text-gray-500 mb-2 font-mono"
-               th:text="${firstFile != null} ? ${firstFile.filename} : ''"></p>
-            <!-- Initial content injected server-side; editor replaces this on load -->
-            <pre id="initial-content" class="hidden"
-                 th:text="${firstFile != null} ? ${firstFile.content} : ''"></pre>
-            <div id="editor-mount" class="flex-1 rounded-lg overflow-hidden border border-gray-700"></div>
+      </div>
+      <!-- Code -->
+      <div class="flex-1 overflow-auto">
+        <div class="flex min-h-full">
+          <div id="gutter" class="ln font-mono text-xs py-4 px-3 leading-6 bg-black/15 border-r border-line"></div>
+          <pre id="code" class="flex-1 py-4 px-4 font-mono text-[13px] leading-6 text-gray-300 whitespace-pre"></pre>
         </div>
+      </div>
     </div>
+  </div>
 </div>
 
-<script type="module" src="/js/preview.js"></script>
+<!-- Inject real file data from Thymeleaf -->
+<script th:inline="javascript">
+  const rawFiles = [[${files}]];
+</script>
+<script>
+function langOf(path) {
+  const ext  = path.split('.').pop().toLowerCase();
+  const name = path.split('/').pop().toLowerCase();
+  if (name === 'dockerfile') return 'docker';
+  if (name === '.gitignore' || name === '.dockerignore') return 'txt';
+  const map = { java:'java', xml:'xml', yml:'yaml', yaml:'yaml', md:'md',
+                py:'py', txt:'txt', json:'json', toml:'txt', properties:'yaml' };
+  return map[ext] || 'txt';
+}
+
+// Map GeneratedFile records (filename, content, fileType) to the shape the UI needs
+const files = rawFiles.map(f => ({
+  path: f.filename,
+  lang: langOf(f.filename),
+  code: f.content || ''
+}));
+
+function iconFor(lang) {
+  const map = {
+    java:['#e76f51','J'], xml:['#42a5f5','X'], yaml:['#26a69a','Y'],
+    md:  ['#9575cd','M'], txt:['#78909c','T'], py: ['#3b82f6','P'],
+    json:['#f59e0b','J'], docker:['#0ea5e9','D'],
+  };
+  const [c, ch] = map[lang] || ['#78909c','·'];
+  return `<span class="fi-icon grid place-items-center w-4 h-4 rounded-[3px] text-[9px] font-bold shrink-0" style="background:${c}22;color:${c}">${ch}</span>`;
+}
+function basename(p) { return p.split('/').pop(); }
+
+function highlight(code, lang) {
+  let h = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  if (lang === 'java') {
+    h = h.replace(/(@[A-Za-z]+)/g, '<span class="tok-ann">$1</span>');
+    h = h.replace(/\b(package|import|public|private|protected|final|class|record|interface|enum|return|new|void|int|long|boolean|static|extends|implements|throws|try|catch|finally|if|else|for|while)\b/g, '<span class="tok-key">$1</span>');
+    h = h.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="tok-str">$1</span>');
+    h = h.replace(/\b([A-Z][A-Za-z0-9]+)\b/g, '<span class="tok-typ">$1</span>');
+    h = h.replace(/(\/\/.*)/g, '<span class="tok-com">$1</span>');
+  } else if (lang === 'xml') {
+    h = h.replace(/(&lt;\/?[^&\s>]+)/g, '<span class="tok-ann">$1</span>');
+    h = h.replace(/("([^"]*)")/g, '<span class="tok-str">$1</span>');
+  } else if (lang === 'yaml') {
+    h = h.replace(/^(\s*[\w.-]+):/gm, '<span class="tok-key">$1</span>:');
+    h = h.replace(/: (.+)$/gm, ': <span class="tok-str">$1</span>');
+    h = h.replace(/(#.*)/g, '<span class="tok-com">$1</span>');
+  } else if (lang === 'md') {
+    h = h.replace(/^(#{1,6} .+)$/gm, '<span class="tok-typ">$1</span>');
+    h = h.replace(/(`[^`]+`)/g, '<span class="tok-str">$1</span>');
+  } else if (lang === 'py') {
+    h = h.replace(/(@[A-Za-z_]+)/g, '<span class="tok-ann">$1</span>');
+    h = h.replace(/\b(def|class|import|from|return|if|elif|else|for|while|with|as|try|except|finally|pass|None|True|False|and|or|not|in|is|raise|yield|async|await)\b/g, '<span class="tok-key">$1</span>');
+    h = h.replace(/("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="tok-str">$1</span>');
+    h = h.replace(/(#.*)/g, '<span class="tok-com">$1</span>');
+  } else if (lang === 'json') {
+    h = h.replace(/("([^"]*)")\s*:/g, '<span class="tok-key">$1</span>:');
+    h = h.replace(/: ("([^"]*)")/g, ': <span class="tok-str">$1</span>');
+  }
+  return h;
+}
+
+const treeEl  = document.getElementById('tree');
+const tabsEl  = document.getElementById('tabs');
+const codeEl  = document.getElementById('code');
+const gutterEl= document.getElementById('gutter');
+const crumbEl = document.getElementById('crumb');
+const lineInfo= document.getElementById('lineInfo');
+let openTabs  = [];
+let activePath= files.length ? files[0].path : '';
+
+function renderTree(filter = '') {
+  treeEl.innerHTML = '';
+  files.filter(f => f.path.toLowerCase().includes(filter.toLowerCase())).forEach(f => {
+    const el = document.createElement('div');
+    el.className = 'file-item flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer font-mono text-xs text-gray-400' +
+                   (f.path === activePath ? ' active' : '');
+    el.dataset.path = f.path;
+    el.title = f.path;
+    el.innerHTML = iconFor(f.lang) +
+      `<span class="truncate">${f.path.includes('/') ? '…/' + basename(f.path) : f.path}</span>`;
+    el.addEventListener('click', () => openFile(f.path));
+    treeEl.appendChild(el);
+  });
+}
+
+function renderTabs() {
+  tabsEl.innerHTML = '';
+  openTabs.forEach(p => {
+    const f   = files.find(x => x.path === p);
+    const tab = document.createElement('div');
+    tab.className = 'tab flex items-center gap-2 pl-3 pr-2 py-2 border-r border-line cursor-pointer text-xs font-mono ' +
+      (p === activePath
+        ? 'bg-surface text-gray-100 border-b-2 border-b-indigo-500'
+        : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.02]');
+    tab.innerHTML = iconFor(f.lang) + `<span>${basename(p)}</span>` +
+      `<button class="close ml-1 w-4 h-4 grid place-items-center rounded hover:bg-white/10 text-gray-500">✕</button>`;
+    tab.addEventListener('click', e => { if (!e.target.classList.contains('close')) openFile(p); });
+    tab.querySelector('.close').addEventListener('click', e => { e.stopPropagation(); closeTab(p); });
+    tabsEl.appendChild(tab);
+  });
+}
+
+function openFile(path) {
+  activePath = path;
+  if (!openTabs.includes(path)) openTabs.push(path);
+  const f     = files.find(x => x.path === path);
+  const lines = f.code.split('\n');
+  gutterEl.innerHTML = lines.map((_, i) => i + 1).join('<br>');
+  codeEl.innerHTML   = highlight(f.code, f.lang);
+  crumbEl.innerHTML  = path.split('/').map((seg, i, a) =>
+    `<span class="${i === a.length - 1 ? 'text-gray-300' : ''}">${seg}</span>`
+  ).join('<span class="text-gray-700 mx-1">/</span>');
+  lineInfo.textContent = lines.length + ' lines';
+  document.querySelectorAll('.file-item').forEach(el =>
+    el.classList.toggle('active', el.dataset.path === path));
+  renderTabs();
+}
+
+function closeTab(path) {
+  openTabs = openTabs.filter(p => p !== path);
+  if (activePath === path && openTabs.length) openFile(openTabs[openTabs.length - 1]);
+  else if (!openTabs.length && files.length) { openTabs = [files[0].path]; openFile(files[0].path); }
+  else renderTabs();
+}
+
+document.getElementById('search').addEventListener('input', e => renderTree(e.target.value));
+document.getElementById('copyBtn').addEventListener('click', () => {
+  const f   = files.find(x => x.path === activePath);
+  navigator.clipboard?.writeText(f.code);
+  const lbl = document.getElementById('copyLabel'), ic = document.getElementById('copyIcon');
+  lbl.textContent = 'Copied'; ic.classList.add('copy-ok');
+  setTimeout(() => { lbl.textContent = 'Copy'; ic.classList.remove('copy-ok'); }, 1400);
+});
+
+if (files.length) {
+  renderTree();
+  openFile(files[0].path);
+}
+</script>
 </body>
 </html>
