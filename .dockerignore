@@ -1,0 +1,29 @@
+# Maven build output — Docker builds its own
+target/
+
+# Git history
+.git/
+.gitignore
+
+# IDE and editor files
+.idea/
+.vscode/
+*.iml
+
+# Documentation (not needed inside the image)
+*.md
+IMPLEMENTATION_PLAN.md
+api-codegen-workflow-plan-v2.md
+
+# Secrets and local config — never bake these into the image
+.env
+.env.local
+.env.example
+src/main/resources/application-local.yml
+
+# Claude session files
+.claude/
+
+# OS artefacts
+.DS_Store
+Thumbs.db

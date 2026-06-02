@@ -1,0 +1,24 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# Deploy by connecting this repo to Render and selecting "Blueprint".
+
+services:
+  - type: web
+    name: spec-forge
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free                  # upgrade to starter/standard for always-on
+    healthCheckPath: /
+
+    envVars:
+      # ── Required ─────────────────────────────────────────────────────────
+      # Set this in the Render dashboard (Environment tab) — never commit the value.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+      # ── Auto-set by Render ────────────────────────────────────────────────
+      # Render injects PORT automatically; the app reads it via ${PORT:8080}.
+      # No need to define it here.
+
+      # ── Production overrides ──────────────────────────────────────────────
+      - key: SPRING_THYMELEAF_CACHE
+        value: "true"
