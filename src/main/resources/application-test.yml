@@ -1,0 +1,4 @@
+# Loaded automatically when spring.profiles.active=test.
+# Sets llm.stub=true which activates StubLlmClient via @ConditionalOnProperty.
+llm:
+  stub: true

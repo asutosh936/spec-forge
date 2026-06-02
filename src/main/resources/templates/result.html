@@ -159,30 +159,68 @@ function basename(p) { return p.split('/').pop(); }
 
 function highlight(code, lang) {
   let h = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // All highlighters use a single-pass alternation regex so that no replacement
+  // can ever accidentally match inside another replacement's output.
+
   if (lang === 'java') {
-    h = h.replace(/(@[A-Za-z]+)/g, '<span class="tok-ann">$1</span>');
-    h = h.replace(/\b(package|import|public|private|protected|final|class|record|interface|enum|return|new|void|int|long|boolean|static|extends|implements|throws|try|catch|finally|if|else|for|while)\b/g, '<span class="tok-key">$1</span>');
-    h = h.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="tok-str">$1</span>');
-    h = h.replace(/\b([A-Z][A-Za-z0-9]+)\b/g, '<span class="tok-typ">$1</span>');
-    h = h.replace(/(\/\/.*)/g, '<span class="tok-com">$1</span>');
-  } else if (lang === 'xml') {
-    h = h.replace(/(&lt;\/?[^&\s>]+)/g, '<span class="tok-ann">$1</span>');
-    h = h.replace(/("([^"]*)")/g, '<span class="tok-str">$1</span>');
-  } else if (lang === 'yaml') {
-    h = h.replace(/^(\s*[\w.-]+):/gm, '<span class="tok-key">$1</span>:');
-    h = h.replace(/: (.+)$/gm, ': <span class="tok-str">$1</span>');
-    h = h.replace(/(#.*)/g, '<span class="tok-com">$1</span>');
-  } else if (lang === 'md') {
-    h = h.replace(/^(#{1,6} .+)$/gm, '<span class="tok-typ">$1</span>');
-    h = h.replace(/(`[^`]+`)/g, '<span class="tok-str">$1</span>');
+    h = h.replace(
+      /(\/\/[^\n]*)|(@[A-Za-z]+)|("(?:[^"\\]|\\.)*")|\b(package|import|public|private|protected|final|class|record|interface|enum|return|new|void|int|long|boolean|static|extends|implements|throws|try|catch|finally|if|else|for|while|this|super)\b|\b([A-Z][A-Za-z0-9]+)\b/g,
+      (m, comment, ann, str, kw, typ) => {
+        if (comment) return `<span class="tok-com">${m}</span>`;
+        if (ann)     return `<span class="tok-ann">${m}</span>`;
+        if (str)     return `<span class="tok-str">${m}</span>`;
+        if (kw)      return `<span class="tok-key">${m}</span>`;
+        if (typ)     return `<span class="tok-typ">${m}</span>`;
+        return m;
+      }
+    );
   } else if (lang === 'py') {
-    h = h.replace(/(@[A-Za-z_]+)/g, '<span class="tok-ann">$1</span>');
-    h = h.replace(/\b(def|class|import|from|return|if|elif|else|for|while|with|as|try|except|finally|pass|None|True|False|and|or|not|in|is|raise|yield|async|await)\b/g, '<span class="tok-key">$1</span>');
-    h = h.replace(/("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="tok-str">$1</span>');
-    h = h.replace(/(#.*)/g, '<span class="tok-com">$1</span>');
+    h = h.replace(
+      /(#[^\n]*)|("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(@[A-Za-z_]+)|\b(def|class|import|from|return|if|elif|else|for|while|with|as|try|except|finally|pass|None|True|False|and|or|not|in|is|raise|yield|async|await)\b/g,
+      (m, comment, str, ann, kw) => {
+        if (comment) return `<span class="tok-com">${m}</span>`;
+        if (str)     return `<span class="tok-str">${m}</span>`;
+        if (ann)     return `<span class="tok-ann">${m}</span>`;
+        if (kw)      return `<span class="tok-key">${m}</span>`;
+        return m;
+      }
+    );
+  } else if (lang === 'xml') {
+    // Two safe passes: attribute values first (no spans exist yet),
+    // then tag names (uses &lt; pattern which won't match literal < in our spans).
+    h = h.replace(/=("([^"]*)")/g, '=<span class="tok-str">$1</span>');
+    h = h.replace(/(&lt;\/?[^&\s>]+)/g, '<span class="tok-ann">$1</span>');
+  } else if (lang === 'yaml') {
+    h = h.replace(
+      /(#[^\n]*)|^([ \t]*[\w.-]+)(?=:)/gm,
+      (m, comment, key) => {
+        if (comment)             return `<span class="tok-com">${m}</span>`;
+        if (key !== undefined)   return `<span class="tok-key">${m}</span>`;
+        return m;
+      }
+    );
+    // Values: safe to apply after keys because key spans end before ':'
+    h = h.replace(/(?<=:\s?)([^#\n]+)/g, '<span class="tok-str">$1</span>');
+  } else if (lang === 'md') {
+    h = h.replace(
+      /^(#{1,6} .+$)|(`[^`]+`)/gm,
+      (m, heading, code) => {
+        if (heading) return `<span class="tok-typ">${m}</span>`;
+        if (code)    return `<span class="tok-str">${m}</span>`;
+        return m;
+      }
+    );
   } else if (lang === 'json') {
-    h = h.replace(/("([^"]*)")\s*:/g, '<span class="tok-key">$1</span>:');
-    h = h.replace(/: ("([^"]*)")/g, ': <span class="tok-str">$1</span>');
+    h = h.replace(
+      /("(?:[^"\\]|\\.)*")\s*:|(:\s*)("(?:[^"\\]|\\.)*")|\b(true|false|null)\b/g,
+      (m, key, colon, val, lit) => {
+        if (key)  return `<span class="tok-key">${key}</span>:`;
+        if (val)  return `${colon}<span class="tok-str">${val}</span>`;
+        if (lit)  return `<span class="tok-ann">${m}</span>`;
+        return m;
+      }
+    );
   }
   return h;
 }

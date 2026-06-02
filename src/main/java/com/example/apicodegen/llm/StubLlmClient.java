@@ -4,7 +4,7 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
@@ -12,11 +12,14 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Test-only LlmClient — reads a canned response from fixtures.
- * Zero network calls. Zero API cost. Activated by the "test" Spring profile.
+ * Offline LLM stub — returns a canned fixture response with zero API calls.
+ *
+ * Activated by setting  llm.stub=true  in any property source:
+ *   mvn spring-boot:run -Dllm.stub=true
+ *   SPRING_PROFILES_ACTIVE=test  (loads application-test.yml which sets llm.stub=true)
  */
 @Component
-@Profile("test")
+@ConditionalOnProperty(name = "llm.stub", havingValue = "true")
 public class StubLlmClient implements LlmClient {
 
     private static final Logger log = LoggerFactory.getLogger(StubLlmClient.class);

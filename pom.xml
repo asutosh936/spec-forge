@@ -72,4 +72,22 @@
         </plugins>
     </build>
 
+    <!-- Run with  mvn spring-boot:run -Pstub  for offline/stub mode -->
+    <profiles>
+        <profile>
+            <id>stub</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                        <configuration>
+                            <jvmArguments>-Dllm.stub=true</jvmArguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
 </project>
